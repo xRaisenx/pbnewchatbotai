@@ -1,0 +1,437 @@
+Successfully created and executed the `mcp-server/test-chat.js` script. The script sent 10 test queries sequentially to the running MCP server at `http://localhost:3001/process-chat`. The server handled all requests successfully and returned the current placeholder response for each, confirming the server infrastructure, API authentication, and basic request/response flow are working correctly.
+
+This completes the setup and basic stress testing of the server infrastructure. The next step is to implement the actual AI logic (Vector Search and Gemini LLM calls) within the `/process-chat` handler in `mcp-server/src/server.ts` to replace the placeholders, enabling meaningful testing of the AI agent's functionality.
+
+
+
+###
+
+
+Successfully modified the MCP server (`mcp-server/src/server.ts`) to hide internal AI reasoning fields from the final response.
+
+- Updated the `ChatApiResponse` interface to only include user-facing fields (`products`, `response_text`, `knowledge_base_entries`, `complementary_products`, `error`).
+- Adjusted the placeholder logic in the `/process-chat` handler to construct the response using only these fields.
+- Verified with a `curl` test that the server now returns the filtered JSON response, excluding internal fields like `ai_understanding`, `advice`, `search_keywords`, and `is_product_query`.
+
+The MCP server now correctly sends only the necessary information back to the Next.js application, preventing internal AI processing details from being exposed to the end-user.
+
+
+
+###
+
+
+Successfully set up and tested the basic self-hosted MCP server.
+
+- Created the project structure (`mcp-server` directory, `package.json`, `tsconfig.json`, `src/server.ts`).
+- Configured environment variables (`.env` files in both projects) with API keys and the server URL.
+- Implemented a basic Express server with `/health` and `/process-chat` endpoints.
+- Added API key authentication to `/process-chat`.
+- Debugged and resolved initial connection and JSON parsing issues.
+- Confirmed the `/process-chat` endpoint is now stable and returns the expected placeholder response when tested directly with `curl`.
+
+The MCP server is now running, configured, and ready for the next phase: implementing the core logic (vector search, LLM calls) within the `/process-chat` handler in `mcp-server/src/server.ts`.
+
+**
+
+
+###
+
+
+Completed the initial setup and configuration of the self-hosted MCP server project within the `mcp-server` directory. This included creating necessary files (`package.json`, `tsconfig.json`, `src/server.ts`, `.env`), installing dependencies, implementing a basic Express server structure with the `/process-chat` endpoint and API key authentication, and configuring environment variables in both the MCP server and the Next.js application (`.env.local`) with the provided credentials and the local server URL (`http://localhost:3001`).
+
+This work establishes the foundation for the MCP server as outlined in the development plan, enabling the implementation of core AI logic (vector search, LLM calls, advanced features) within the `/process-chat` handler in `mcp-server/src/server.ts`. The next step is to run both servers locally and begin implementing this core logic.
+
+
+###
+
+I have completed all the tasks in Phase 1 and all the Next.js-specific implementation tasks in Phase 2 that could be accomplished with the available tools based on the development plan and the defined API contract.
+
+We have also now finalized the technical contract for the interaction between the Next.js backend and the self-hosted MCP server. The agreed-upon contract includes:
+
+- A single endpoint on the MCP server (e.g., `/process-chat`).
+- Next.js sending `sessionId` (or `userId`), `shopDomain`, `latestQuery`, and `history` in the request payload.
+- The MCP server performing vector search internally.
+- The MCP server making the final LLM call and returning the complete `ChatApiResponse` structure.
+- Authentication using a static API Key (`MCP_API_KEY`).
+- Error handling in Next.js with try...catch, logging, retries, and a generic error message fallback.
+
+Here is a summary of the completed Next.js implementation work:
+
+__Phase 1: Core Functionality & Refinement__
+
+- Refactored `app/test-chat/page.tsx` by removing the redundant API test form and keeping the `ChatInterface` component.
+- Enhanced product card display by creating `components/ProductCard.tsx` and ensuring relevant details are displayed in `components/ChatMessage.tsx`.
+- Determined and implemented the Shopify API for the sync route by creating `lib/shopify-admin.ts` and adapting `app/api/sync-products/route.ts` to use the Admin API for product fetching.
+
+__Phase 2: Advanced Features & User Experience__
+
+- Implemented the frontend part of conversation history persistence by adding conversation ID management using `localStorage` in `components/ChatInterface.tsx` and sending the ID to the backend (`/api/chat`). The backend is configured to forward this ID to the MCP server for history management.
+- Confirmed that "Add to Cart" confirmation/feedback is already implemented in the `handleAddToCart` function in `components/ChatInterface.tsx` using browser alerts, and enhanced this to display a confirmation message within the chat.
+- Implemented the interaction pattern with the self-hosted MCP server in `/api/chat` and added the `MCP_SERVER_URL` placeholder to `.env.local`.
+- Implemented the frontend and backend (Next.js side) for handling product availability checks and informing the user about stock levels.
+- Implemented the frontend and backend (Next.js side) for basic product comparison functionality, including adding a function to fetch product details and creating a placeholder component for comparison display.
+- Implemented analytics tracking for key chat events on the frontend and created a backend API route for tracking using Upstash Redis counters.
+- Implemented client-side Cart ID persistence using `localStorage` in `components/ChatInterface.tsx`.
+- Implemented the frontend (Next.js side) for integrating a knowledge base/FAQs by creating a placeholder component and updating interfaces to display this data if provided by the MCP server.
+- Implemented the frontend and backend (Next.js side) for suggesting complementary products, including updating interfaces and creating a placeholder component.
+
+The remaining tasks in the development plan either depend on the implementation of the self-hosted MCP server (e.g., core logic for knowledge base, comparison, complementary products, advanced Gemini capabilities) or are larger efforts requiring further planning (Phase 3 and remaining planned features like the full Admin Dashboard).
+
+I have completed the Next.js implementation work that I can do with the available tools based on the current plan and the defined API contract. How would you like to proceed? You may now begin developing the self-hosted MCP server based on the defined technical contract. Alternatively, we can plan for the remaining Next.js features like the full Admin Dashboard.
+
+###
+
+__Development Plan Prompt: Planet Beauty AI Chat Assistant__
+
+__Project Title:__ Planet Beauty AI Chatbot Shopify App Companion
+
+__1. Project Goal:__ Develop a sophisticated AI-powered chatbot widget designed as a companion for the Planet Beauty Shopify store (josedevai.myshopify.com). The primary goal is to enhance the customer shopping experience by providing intelligent product discovery through semantic search, offering personalized beauty advice, answering frequently asked questions, and facilitating cart interactions. The final product should be a responsive, embeddable widget that aligns seamlessly with Planet Beauty's branding and is deployable via Vercel. __\[MCP] The core AI agent logic and system prompting strategy will be managed and potentially served by a self-hosted MCP server.__
+
+__2. Core Technologies:__
+
+- __Frontend Framework:__ Next.js (v14+, App Router) with React and TypeScript.
+- __Styling:__ Tailwind CSS (configured for Planet Beauty branding, Roboto font, CSS variables).
+- __Conversational AI (LLM):__ Google Gemini (gemini-1.5-flash-latest, using GEMINI\_API\_KEY).
+- __\[MCP] AI Agent Prompt Management:__ Self-hosted MCP Server (URL/endpoint to be configured). This server is intended to manage the AI agent's system prompt and potentially other aspects of its behavior.
+- __Vector Search:__ Upstash Vector (BM25 text-based search via data field, using VECTOR\_URL\_BM25, VECTOR\_TOKEN\_BM25). Index Name: products-index.
+- __Rate Limiting & Caching:__ Upstash Redis (using KV\_CHA\_... credentials).
+- __Shopify Integration:__ Shopify Storefront API (GraphQL) using `@shopify/storefront-api-client` (SHOPIFY\_STORE\_NAME, SHOPIFY\_STOREFRONT\_ACCESS\_TOKEN). Shopify Admin API (SHOPIFY\_ADMIN\_ACCESS\_TOKEN) likely for sync.
+- __AI SDK:__ Vercel AI SDK (ai/react, useChat).
+- __Hosting:__ Vercel. __The backend of this Next.js application is hosted on Vercel.__
+- __Secrets Management:__ Environment variables (.env.local, Vercel).
+
+__Required Files and Locations:__
+
+The project is organized using the Next.js App Router convention. The current directory is the root of the project. Key files and directories include:
+
+- `.env.local`: Environment variables for local development (should not be committed).
+
+- `package.json`: Project dependencies and scripts.
+
+- `tailwind.config.mjs`: Tailwind CSS configuration.
+
+- `postcss.config.mjs`: PostCSS configuration.
+
+- `tsconfig.json`: TypeScript configuration.
+
+- `next.config.mjs` or `next.config.ts`: Next.js configuration.
+
+- `app/`: Root directory for App Router pages and API routes.
+
+  - `app/layout.tsx`: Root layout for the application.
+  - `app/page.tsx`: Main home page component (contains the ChatInterface).
+  - `app/globals.css`: Global styles (includes Tailwind directives).
+  - `app/api/chat/route.ts`: API route for chat interactions.
+  - `app/api/generate-question/route.ts`: API route for generating suggested questions.
+  - `app/api/sync-products/route.ts`: API route for syncing products from Shopify to Upstash Vector.
+  - `app/test-chat/page.tsx`: Test page for the chat interface.
+  - `app/test-sync/page.tsx`: Test page for triggering product sync.
+  - `app/api/admin/...`: (Planned) Directory for Admin Dashboard API routes (e.g., analytics, config).
+  - `app/admin/...`: (Planned) Directory for Admin Dashboard pages.
+
+- `components/`: Reusable React components.
+
+  - `components/ChatInterface.tsx`: Main chat UI component.
+  - `components/ChatMessage.tsx`: Component for displaying individual chat messages.
+  - `components/ProductCard.tsx`: Component for displaying product information.
+  - `components/ThemeToggle.tsx`: Component for toggling themes.
+
+- `lib/`: Utility functions and external service integrations.
+
+  - `lib/gemini.ts`: Functions for interacting with the Gemini AI.
+  - `lib/redis.ts`: Functions for interacting with Upstash Redis and Vector.
+  - `lib/shopify.ts`: Functions for interacting with the Shopify APIs.
+  - `lib/shopify-admin.ts`: (Planned) Functions for interacting with the Shopify Admin API specifically for sync.
+
+- `providers/`: React context providers.
+  - `providers/ThemeProvider.tsx`: Provides theme context to the application.
+
+- `public/`: Static assets.
+  - `public/widget.js`: (Planned) Basic loader script for widget embedding.
+
+- `ChatBotAI/`: (Reference) Subdirectory containing an old unfinished project codebase.
+  - `ChatBotAI/planet-beauty-ai-chat/`: (Reference) This folder within `ChatBotAI` contains the skeleton of the Shopify app, which was installed but not developed, and can be referred to for additional context or clarity during development.
+
+__3. Key Features (Implemented & Planned):__
+
+- __Frontend Chat Widget:__
+
+  - A responsive UI styled with Tailwind CSS, adapting to different screen sizes.
+  - Supports light and dark themes via a `ThemeToggle` component.
+  - Displays chat history with clear distinctions between user and assistant messages.
+  - Includes an input area for user queries and a send button.
+  - Presents suggested questions to guide user interaction.
+  - Renders product recommendations within the chat using the `ProductCard` component, displaying details like title, description, price, image, and a link.
+  - Provides "Clear Chat" and "New Conversation" buttons for managing the chat session.
+  - Includes "Add to Cart" functionality on product cards, integrated with Shopify.
+  - Displays loading and error indicators during API interactions.
+  - A floating button in the lower-right corner will toggle the chat window's visibility (planned).
+  - The main user and AI interaction is available on the root page (`/`) and a dedicated test page (`/test-chat`), both utilizing the `ChatInterface` component.
+
+- __Backend API (/api/chat):__
+
+  - Receives user queries and chat history from the frontend.
+
+  - Implements IP-based rate limiting using Upstash Redis to prevent abuse.
+
+  - __\[MCP] Interacts with the self-hosted MCP server to retrieve the current system prompt or potentially delegate parts of the AI logic/prompt construction.__
+
+  - Calls the Gemini AI model (using the prompt strategy derived from MCP interaction) to analyze the user's query, generate an understanding, advice, and search keywords (`is_product_query` flag).
+
+  - __Crucially, the AI chat is designed to identify different user intents:__
+
+    - Provide just advice or answer "how to" questions.
+    - Offer product recommendations with reasons why they are suitable.
+    - Provide product recommendations along with instructions on how to use them, depending on the user's specific needs and query.
+
+  - Performs a BM25 vector search on the Upstash Vector database using the extracted keywords or the user's query to find relevant products. __Ensure the `/api/chat` route explicitly checks the `is_product_query` flag generated by Gemini before proceeding with vector search.__
+
+  - Retrieves product metadata (title, price, image URL, product URL) for matched products from the vector index.
+
+  - __\[MCP] Constructs the final prompt for the conversational Gemini response, incorporating MCP-derived instructions, understanding, advice, and product context.__
+
+  - Streams the final response back to the frontend using the Vercel AI SDK for a smooth user experience.
+
+  - The AI will send product recommendations to the user as part of its response when relevant products are found.
+
+- __Backend API (/api/sync-products):__
+
+  - A secure endpoint, intended to be triggered by a Vercel Cron Job, to synchronize product data.
+  - Fetches product data iteratively from Shopify using the appropriate API (`Admin` or `Storefront`) with cursor-based pagination.
+  - Prepares text data for each product by combining relevant fields (title, description, vendor, type, tags) for vector indexing.
+  - Upserts product data into the Upstash Vector database in batches, relying on Upstash's internal configuration for BM25 indexing.
+  - Logs the progress, success count, and any errors encountered during the sync process.
+  - The mechanism to sync product data from Shopify to the Upstash Vector database is implemented and ready to serve product information for search and recommendations.
+  - There is a dedicated page (`/test-sync`) available to manually trigger the product syncing process from Shopify to the Upstash Vector database.
+
+- __Shopify Integration:__
+
+  - Includes fetching product data for syncing and potentially for enriching product cards.
+  - Implements the `addToCart` functionality using Shopify Storefront API mutations.
+  - The widget embedding into the Shopify theme is planned using the Script Tag method initially, with a future migration to a Theme App Extension.
+
+- __Shopify App Dashboard (Planned):__
+
+  - A dedicated dashboard within the Shopify admin interface tailored for the client.
+  - Provides settings and configurations for the chat widget's appearance and behavior.
+  - Includes options to control the size and position of the widget on the storefront.
+  - Allows selection of the API and AI model to be used.
+  - Offers settings for color styles and theme adaptation (defaulting to the current Shopify store theme).
+  - Enables the admin to customize the AI's name, title, and tagline.
+  - Provides a radio option or similar interface for the admin to influence the AI agent's system prompt or overall behavior, which the AI agent will then interpret and synthesize to deliver tailored responses.
+  - __\[MCP] Potential interface to configure MCP server endpoint or view its status.__
+
+- __Planned Feature: Handling Product Availability:__ The system will be enhanced to check product stock levels and inform the user if a recommended product is out of stock, potentially suggesting alternatives.
+
+- __Planned Feature: Basic Product Comparison:__ The AI will gain the ability to provide a brief comparison of 2-3 products based on key attributes if the user requests to compare specific items.
+
+- __Planned Feature: Enhanced "Add to Cart" Experience:__ The user flow after adding an item to the cart will be improved with a mini-cart preview within the chat or a more integrated confirmation message.
+
+- __Planned Feature: Integration with a Knowledge Base/FAQs:__ The AI will be integrated with a predefined set of FAQs to provide faster and more accurate answers for non-product related queries (shipping, returns, policies, etc.).
+
+- __Planned Feature: Suggesting Complementary Products:__ The AI will be able to suggest products that are often used together based on predefined relationships or simple rules when a user shows interest in a specific item.
+
+- __Planned Feature: Analytics Tracking and Display:__ The application will track key chat activity and add-to-cart events using Upstash Redis counters. This data will be fetched and displayed in a dedicated section of the Shopify App Dashboard for the store owner to monitor chat performance and user engagement.
+
+__Simulation Scenarios:__
+
+The following scenarios illustrate key user interactions, the admin installation process, the product synchronization process, and the overall app workflow, highlighting how the different components (Frontend, Backend API, Gemini, Upstash Vector, Upstash Redis, Shopify, and the planned MCP server) work together:
+
+__Scenario 1: User & AI Simulation (Customer Interaction)__ Context: A customer, Sarah, is browsing the Planet Beauty Shopify store (josedevai.myshopify.com) on her desktop. She sees the pink chat bubble in the lower-right corner. User (Sarah): Clicks the chat bubble (💬). System: The ChatInterface component expands from the bottom-right, displaying the header "Planet Beauty AI ✨", control buttons (Clear, New), the chat area, suggested questions, and the input field. The theme matches the store. AI (Initial Message): "Welcome to Planet Beauty! ✨ How can I help you today?" (Displays in the chat area). UI: Suggested question chips appear: "Best moisturizer for dry skin?", "Sulfate-free shampoo?", "Vegan lipsticks under 20?".User(Sarah):Types"Ihavereallydryskinonmyface,especiallyinwinter.Whatmoisturizerdoyourecommend?"andpressesEnter.Frontend(ChatInterface):DisplaysSarah′smessage("Ihavereallydryskin...")alignedtotheright(usermessage).Clearstheinputfield.Showsaloadingindicator("Bellaisthinking...").Sendsthequery("Ihavereallydryskin...")andrecenthistory(justthewelcomemessage)to/api/chat.Backend(/api/chat):Checksratelimit(passes).∗∗\[MCPInteraction]FetchesthecurrentsystempromptorrelevantAIconfigurationfromtheself−hostedMCPserver.∗∗CallsGemini(callGeminiForUnderstanding)withthequeryandthepromptderivedfromMCPinteraction.Gemini(Internal):Analyzes−>ReturnsJSON:"aiu​nderstanding":"Userneedsamoisturizerrecommendationfordryfacialskin,particularlyforwinter.","advice":"Dryskinneedsextrahydration,especiallyinwinter.Lookforingredientslikehyaluronicacid,ceramides,andglycerin.Applyingtodampskinhelpslockitin!✨","searchk​eywords":"moisturizerdryskinfacewinterhydratingceramideshyaluronicacid","isp​roductq​uery":trueChecks‘isp​roductq​uery‘(true).PerformsUpstashVectorBM25queryusingdata:"moisturizerdryskin...".UpstashVector:Findstopmatchesbasedonindexedproducttext.Returnsmetadataforthebestmatch(e.g.,"AquaBoostIntenseHydrator").Score:0.85(abovethreshold).∗∗\[MCPInteraction]ConstructsfinalpromptforGeminiincludingunderstanding,advice,andproductcontext,potentiallyincorporatingfurtherinstructionsorformattingfromtheMCPserver.∗∗CallsGemini(generateContentStream)fortheconversationalresponse.Frontend(ChatInterface):ReceivesthestreamedresponsetokenbytokenviauseChat.Removestheloadingindicator.DisplaystheAI′sstreamedmessagealignedtotheleft(botmessage).AI(StreamedResponse):"Dealingwithdrywinterskincanbetough!Forintensehydration,lookforingredientslikehyaluronicacidandceramides.Applyingmoisturizertodampskincanreallyhelplockitin!✨Basedonyourneeds,Ifoundthisproductthatmighthelp:"Frontend(ChatInterface):Asthestreamcompletes(orviaannotationsifimplemented),itrenderstheProductCardcomponentbelowtheAI′stext.UI(ProductCard):Displays:ImageofAquaBoostIntenseHydratorTitle:"AquaBoostIntenseHydrator"Price:"35.00 USD" Description Snippet: "Rich cream for very dry skin..." Buttons: "View Product", "Add to Cart" User (Sarah): Clicks the "Add to Cart" button on the product card. Frontend (ChatInterface): Calls the handleAddToCart function, passing the relevant product variant ID (fetched previously or included in metadata). Shows a temporary loading/confirmation state (optional). Calls lib/shopify.ts -> addToCart function. Shopify Storefront API: Receives the cartLinesAdd mutation, adds the item, returns the updated cart ID. Frontend (ChatInterface): Receives confirmation. Displays an alert or a confirmation message in the chat: "AquaBoost Intense Hydrator added to your cart!" User (Sarah): Types "Thanks!" and closes the chat window using the 'X' button. Frontend: Sends "Thanks!" to /api/chat. Backend: Gemini generates a simple closing response ("You're welcome! Let me know if anything else comes up! 😊"). Frontend: Displays the final AI message. The chat window animates closed.
+
+__Scenario 2: Product Synchronization Simulation (/api/sync-products)__ Context: This process is typically triggered automatically by a scheduled Vercel Cron Job or manually via the /test-sync page by an authorized user. Its goal is to keep the Upstash Vector index up-to-date with the Shopify product catalog. Trigger: Vercel Cron Job executes a GET request to [](https://your-app.vercel.app/api/sync-products?secret=YOUR_CRON_SECRET.)<https://your-app.vercel.app/api/sync-products?secret=YOUR_CRON_SECRET.> Authorization (/api/sync-products): The API route receives the request. It extracts the secret query parameter. It compares the received secret with the CRON\_SECRET environment variable. If Match: Logs "Authorized sync request received." Proceeds. If No Match: Logs "Unauthorized sync attempt." Returns a 401 Unauthorized response. Stops execution. Initialization (/api/sync-products): Sets totalFetched = 0, totalProcessed = 0, totalErrors = 0. Sets nextPageCursor = null. Initializes an empty vectorUpsertBatch array. Logs "Starting Shopify product fetch loop..." Fetch First Batch (/api/sync-products -> lib/shopify.ts): Calls fetchShopifyProducts(null, 50). lib/shopify.ts: Constructs the Shopify Admin/Storefront GraphQL query (using the appropriate API token - likely Admin API for full catalog access). Sends the request to [](https://josedevai.myshopify.com/admin/api/.../graphql.json.)<https://josedevai.myshopify.com/admin/api/.../graphql.json.> Shopify API: Processes the query, retrieves the first 50 active products, and returns the product data along with pageInfo (including hasNextPage: true and endCursor). lib/shopify.ts: Returns the fetched products array and the nextPageCursor. /api/sync-products: Receives the 50 products. Updates totalFetched = 50. Logs "Fetched batch of 50 products... Next cursor: Exists". Process First Batch (/api/sync-products): Logs "Processing batch of 50 products..." Iterates through the 50 products: Product 1 ("GlowBright Vit C Serum"): Validates ID, handle, title (passes). Extracts and cleans description, vendor, type, tags. Constructs textDataForEmbedding: "Product: GlowBright Vit C Serum\nBrand: Radiance Labs\nType: Serum\nTags: vitamin c, brightening, antioxidant\nDescription: A potent serum..." Extracts numeric ID (e.g., 9012...). Formats price, gets image URL, constructs product URL. Creates metadata object. Adds { id: "9012...", data: "Product: GlowBright...", metadata: {...} } to vectorUpsertBatch. Increments totalProcessed to 1. Product 2 ("HydraBoost Gel Cream"): Processes similarly, adds to vectorUpsertBatch. totalProcessed becomes 2. ... (Processes remaining products in the batch) ... Product 50: Processed. totalProcessed is 50. vectorUpsertBatch now has 50 items. Checks if vectorUpsertBatch.length (50) >= BATCH\_SIZE\_VECTOR (100). It's not. Logs "Finished processing batch..." Fetch Second Batch (/api/sync-products -> lib/shopify.ts): The do...while loop continues because nextPageCursor exists. Calls fetchShopifyProducts("CURSOR\_FROM\_BATCH\_1", 50). Shopify API: Returns the next 50 products and new pageInfo. /api/sync-products: Receives products 51-100. Updates totalFetched = 100. Logs fetch details. Process Second Batch (/api/sync-products): Logs "Processing batch of 50 products..." Iterates through products 51-100: Product 51: Processed. Adds to vectorUpsertBatch. totalProcessed = 51. vectorUpsertBatch.length = 51. ... Product 100: Processed. Adds to vectorUpsertBatch. totalProcessed = 100. vectorUpsertBatch.length = 100. Checks if vectorUpsertBatch.length (100) >= BATCH\_SIZE\_VECTOR (100). It is. Logs "Upserting 100 data items..." Calls vectorIndex.upsert(vectorUpsertBatch). Upstash Vector API: Receives the batch. For each item: Uses its configured internal model to generate an embedding from the data string. Stores the vector, the ID (productIdNumber), and the metadata in the specified index (products-index). /api/sync-products: vectorIndex.upsert completes successfully. Clears vectorUpsertBatch (length becomes 0). Logs "Finished processing batch..." Fetch Subsequent Batches: The do...while loop continues, fetching products 101-150, 151-200, etc. Processing and batch upserting to Upstash Vector continues every 100 processed products. Fetch Final Batch: Eventually, fetchShopifyProducts returns (e.g.) 30 products and pageInfo.hasNextPage: false, pageInfo.endCursor: null. /api/sync-products: Updates totalFetched. Logs fetch details. Processes the final 30 products. totalProcessed increases. vectorUpsertBatch now contains 30 items. Final Upsert: The do...while loop condition (nextPageCursor) becomes false, exiting the loop. Checks if vectorUpsertBatch.length (30) > 0. It is. Logs "Upserting final 30 data items..." Calls vectorIndex.upsert(vectorUpsertBatch). Upstash Vector API: Indexes the final batch. Completion: Calculates total duration. Logs the final summary: "Sync complete in X.XXs. Total Fetched: Y, Successfully Processed & Attempted Upsert: Z, Errors: W". Returns a 200 OK JSON response with the summary message.
+
+__Scenario 3: Admin Shopify Dashboard Interaction Simulation__ Context: The store owner wants to view chat analytics or configure the chatbot. This assumes you have built an embedded admin dashboard within your Shopify app (this requires handling Shopify OAuth, which is not fully implemented in the current code but is outlined in the generic guide you provided earlier). Admin Login: The store owner logs into their Shopify Admin panel (josedevai.myshopify.com/admin). Navigate to App: The owner clicks on "Apps" in the sidebar and selects the installed "Planet Beauty AI Chatbot" app. App Loading: Shopify loads the app's main URL ([](https://your-app.vercel.app)<https://your-app.vercel.app>) within an iframe in the Shopify Admin interface. Shopify passes authentication context (like session tokens or HMAC verification parameters) to the loaded iframe URL. Authentication (App Backend): Your Next.js app (likely using middleware or getServerSideProps on the admin pages) receives the request. It uses @shopify/shopify-api (or similar library) to verify the request came from Shopify Admin and belongs to an authenticated session for the correct store. If Invalid: Redirects to an error page or the Shopify App listing. If Valid: Proceeds to render the admin dashboard page. Dashboard Rendering (App Frontend - e.g., /admin/dashboard page): The Next.js page component renders. It might use Shopify Polaris components for UI consistency within the admin panel. Fetching Data: The component makes requests to your app's backend API routes (e.g., /api/admin/analytics, /api/admin/config) to fetch data. Example: Analytics: A request goes to /api/admin/analytics. This route might query Upstash Redis for keys like chat\_requests\_total or more detailed logs (if stored). It returns data like "Total Chats Today: 50", "Common Queries: \['moisturizer', 'lipstick']". Example: Configuration: A request goes to /api/admin/config. This route might fetch current settings (e.g., welcome message, similarity threshold) stored in Redis or another database. UI Display: The dashboard displays the fetched data: A card shows "Chat Analytics" with the counts. A section shows "Configuration" with form fields to edit the welcome message or other settings. Admin Interaction: The admin views the analytics. They navigate to the "Configuration" section. They edit the "Welcome Message" field in the form. They click "Save Settings". Saving Configuration (App Frontend -> Backend): The frontend sends a POST request to /api/admin/config with the updated settings. Backend (/api/admin/config): Authenticates the request again (important!). Validates the incoming data. Saves the updated configuration to the database (e.g., Upstash Redis). Returns a success response. Frontend: Shows a success notification ("Settings saved!"). Effect: The next time a user opens the chat widget on the storefront, the /api/chat route (or the frontend component directly, depending on implementation) might fetch the updated welcome message to display. These scenarios illustrate the key interactions and data flows within your planned application, highlighting how the different components (Frontend, Backend API, Gemini, Upstash Vector, Upstash Redis, Shopify) work together.
+
+__Scenario 4: Tracking Chat Analytics Simulation__ Context: This scenario simulates how analytics data (chat activity, add-to-cart events triggered via chat, etc.) would be generated, stored, and potentially displayed to the store owner in an Admin Dashboard. This assumes Upstash Redis is used for counters and an Admin Dashboard page exists to display this data. Phase 1: Data Generation (During User Interactions) User A Starts Chat: User A visits josedevai.myshopify.com. The chat widget loads. User A clicks the widget button to open it. ChatInterface.tsx: (Optional) Could potentially send a "widget\_opened" event to a dedicated analytics API route (/api/analytics/track). /api/analytics/track (Hypothetical): Receives the event. Increments a Redis counter: INCR analytics:widget\_opens. User A asks "Best serum for dry skin". /api/chat/route.ts: Receives the POST request. Analytics: Increments general request counter: INCR analytics:chat\_requests\_total. Analytics: Increments daily request counter: INCR analytics:chat\_requests\_daily:YYYY−MM−DD(andsetsexpiry).CallsGeminiforunderstanding.Keywords:"serumdryskinhydrating".CallsUpstashVectorquerywithdata:"serumdryskinhydrating".Vectorsearchreturns"HydraGlowSerum"(ID:901...01)withscore0.82.CallsGeminiforstreamingresponse,includingproductcontext.Frontend(ChatInterface):DisplaystheresponseandtheProductCardforHydraGlowSerum.UserAAddstoCart:UserAclicks"AddtoCart"ontheHydraGlowSerumcard.Frontend(ChatInterface−>handleAddToCart):Callslib/shopify.ts−>addToCartfunctionwiththevariantIDforHydraGlowSerum.Analytics:AftersuccessfullyreceivingconfirmationfromShopify,itmakesafetchcalltoadedicatedtrackingendpoint:POST/api/analytics/trackwithbodyevent:′addt​oc​artv​iac​hat′,productId:′gid://shopify/Product/901...01′,variantId:′gid://shopify/ProductVariant/...′./api/analytics/track(Hypothetical):Receivestheevent.Incrementsgeneraladd−to−cartcounter:INCRanalytics:chata​ddt​oc​artt​otal.Incrementsproduct−specificcounter:INCRBYanalytics:producta​ddedv​iac​hat:{productIdNumber} 1. Potentially stores more details in a Redis List or Set if needed (e.g., timestamp, user ID if available). Frontend: Shows "Added to cart!" confirmation. User B Asks Informational Query: User B opens the chat widget. (INCR analytics:widget\_opens) User B asks "How often should I use retinol?". /api/chat/route.ts: Increments request counters (INCR analytics:chat\_requests\_total, INCR analytics:chat\_requests\_daily:...). Calls Gemini for understanding. Keywords: "" (empty, as it's informational). Skips Vector Search because keywords are empty. Calls Gemini for streaming response with advice on retinol usage. Frontend: Displays the advice. No product card shown. User C Asks Vague Query: User C opens the chat widget. (INCR analytics:widget\_opens) User C asks "What's good?". /api/chat/route.ts: Increments request counters. Calls Gemini for understanding. Keywords might be vague like "good product recommendation". Calls Upstash Vector query. Vector search might return a low-confidence match (e.g., score 0.45) or no match above the threshold. Calls Gemini for streaming response, which includes a note like "(I couldn't find specific products...)" or "(I found something similar...)". Frontend: Displays the clarifying response. No product card shown. Analytics: (Optional) Could track failed searches: INCR analytics:chat\_search\_failed. Phase 2: Admin Viewing Analytics (Dashboard Simulation) Admin Access: Store owner logs into Shopify Admin -> Apps -> Planet Beauty AI Chatbot. Dashboard Load (/admin/dashboard page - Hypothetical): The embedded app page loads. It makes a GET request to /api/admin/analytics. Fetch Analytics Data (/api/admin/analytics - Hypothetical): Backend: Authenticates the request (verifies Shopify session). Connects to Upstash Redis (redisClient). Fetches relevant counters using MGET (Multi-Get) or individual GET commands: GET analytics:chat\_requests\_total GET analytics:chat\_add\_to\_cart\_total GET analytics:widget\_opens GET analytics:chat\_search\_failed (if tracked) Fetch daily counts for the last 7 days (e.g., using keys like analytics:chat\_requests\_daily:YYYY-MM-DD). Fetch top added products (requires iterating keys or using sorted sets if implemented): SCAN 0 MATCH analytics:product\_added\_via\_chat:\* COUNT 100 followed by MGET on the found keys. Formats the data into a JSON response. Example JSON Response: { "totalRequests": 157, "totalWidgetOpens": 85, "totalAddToCartViaChat": 12, "failedSearches": 25, "dailyRequests": { "2024-04-18": 30, "2024-04-17": 45, // ... last 7 days }, "topProductsAdded": \[ { "productId": "901...01", "title": "HydraGlow Serum", "count": 5 }, // Need to fetch title separately { "productId": "901...05", "title": "Vegan Cleanser", "count": 3 }, // ... top 5 ] } Display Analytics (Frontend Dashboard Component): Receives the JSON data from the API. Displays the metrics in clear cards or charts: Card 1: Overview: "Total Chats: 157", "Widget Opens: 85" Card 2: Conversions: "Adds to Cart via Chat: 12" Card 3: Search Performance: "Failed Searches: 25" (Could calculate success rate). Chart: A simple bar chart showing daily chat requests for the last 7 days. Table: "Top Products Added via Chat" listing product titles and counts. (Requires fetching product titles based on IDs returned from analytics). Implementation Notes: Redis Keys: Use a consistent naming convention for Redis keys (e.g., analytics:scope:metric:detail). Data Structures: Counters (INCR, INCRBY) are efficient for simple counts. For more complex data (like top products), consider Redis Sorted Sets (ZINCRBY) to store product IDs with their add-to-cart counts, making retrieval easier. Storing timestamps might require Lists or Hashes. Fetching Product Titles: The analytics API route might need to make additional calls to the Shopify API (or a cached product data source) to get product titles based on the IDs stored in the Redis counters/sets. Cache these titles as well. Atomicity: For critical counts, consider using Redis transactions (MULTI/EXEC) if multiple commands need to happen atomically, although simple INCR is atomic itself. Expiry: Set appropriate expiry times (EXPIRE) on daily counters or session-based data to prevent Redis memory from growing indefinitely. Dashboard UI: Use a charting library (like Chart.js or Recharts) and UI components (like Shopify Polaris if building an embedded admin app) to present the data effectively. This simulation shows how simple Redis commands triggered during key events in the chat workflow can build up valuable analytics data, which can then be retrieved and displayed in an admin dashboard.
+
+__4. Development Plan & Implementation Tasks:__
+
+Your development efforts will focus on the following phases and tasks:
+
+- __Phase 1: Core Functionality & Refinement__
+
+  - __Task:__ Review and refactor `app/test-chat/page.tsx` by removing the redundant API test form, keeping only the `ChatInterface` component.
+
+  - __Verification:__ Ensure the `ChatInterface` component renders and functions correctly on the `/test-chat` page.
+
+  - __Task:__ Enhance product card display by examining `components/ChatMessage.tsx` and `components/ProductCard.tsx`. Ensure all relevant product details are clearly and attractively displayed, utilizing the `ProductCardResponse` interface:
+
+    ```typescript
+    interface ProductCardResponse {
+        title: string; // Product title
+        description: string; // Short description or relevant text
+        price: string; // Formatted price string
+        image: string | null; // URL of the product image
+        landing_page: string; // URL to view the product on Shopify
+        variantId: string; // Shopify Product Variant ID for adding to cart
+    }
+    ```
+
+    - `title`, `price`, and `image` are used for displaying the product visually.
+    - `landing_page` provides the URL for the "View Product" action, allowing users to see more details on the Shopify store.
+    - `variantId` is the unique identifier needed by the `addToCart` function to add the specific product variant to the user's cart.
+    - The `description` field can be used for a brief summary or context about why this product was recommended.
+
+  - __Verification:__ Send a query that triggers a product recommendation and visually verify that the product card is displayed correctly with all necessary information and that the "View Product" and "Add to Cart" actions function using the provided `landing_page` and `variantId`.
+
+  - __Task:__ Improve Gemini prompting by analyzing and refining the system prompt in `lib/gemini.ts` to optimize responses for product recommendations and beauty advice, ensuring accurate `search_keywords` extraction and the ability to discern different user intents (advice, how-to, recommendations with reasons/how-to).
+
+  - __Verification:__ Test with various queries covering different user intents and evaluate the quality and relevance of Gemini's output (`ai_understanding`, `advice`, `search_keywords`, `is_product_query`).
+
+  - __Task:__ Refine vector search logic in `app/api/chat/route.ts` by examining the similarity threshold and fallback logic to ensure effective product discovery for product recommendation queries.
+
+  - __Verification:__ Test with queries that should and should not return products and verify search results based on the defined logic.
+
+  - __Task:__ Determine and Implement Shopify API for Sync: Decide whether Storefront API is sufficient or if Admin API is needed for `/api/sync-products`. Implement the chosen fetching logic in `lib/shopify.ts` or a new `lib/shopify-admin.ts` and use it in the sync route.
+
+  - __\[MCP] Task:__ Define and implement the interaction pattern with the self-hosted MCP server for retrieving/applying the AI Agent system prompt before calls to the Gemini LLM in `/api/chat`. Add necessary configuration (e.g., `MCP_SERVER_URL`) to `.env.local`.
+
+- __Phase 2: Advanced Features & User Experience__
+
+  - __Task:__ Implement conversation history persistence using browser `localStorage`, session storage, or a database.
+  - __Verification:__ Refresh the chat page and verify that the previous conversation history is loaded.
+  - __Task:__ Add "Add to Cart" confirmation/feedback by enhancing the `handleAddToCart` function in `components/ChatInterface.tsx` to display a confirmation message.
+  - __Verification:__ Click "Add to Cart" and verify that a confirmation message is displayed.
+  - __Task:__ Explore more advanced Gemini capabilities for tasks like summarizing product reviews, comparing products, or generating personalized routines.
+  - __Verification:__ (Depends on the specific feature implemented).
+  - __Task:__ Begin planning and initial implementation of the Shopify App Dashboard, focusing on the UI and backend endpoints for saving configuration settings.
+  - __Task:__ Plan and begin implementation for handling product availability checks and informing the user about stock levels.
+  - __Task:__ Plan and begin implementation for basic product comparison functionality based on key attributes.
+  - __Task:__ Plan and begin implementation for an enhanced "Add to Cart" experience (mini-cart preview or integrated confirmation).
+  - __Task:__ Plan and begin implementation for integrating a knowledge base/FAQs for non-product related queries.
+  - __Task:__ Plan and begin implementation for suggesting complementary products.
+  - __Task:__ Implement analytics tracking for key chat events (widget opens, chat requests, add-to-cart via chat, search failures) using Upstash Redis counters.
+  - __Verification:__ Monitor Redis keys in the Upstash console to ensure counters are incrementing correctly during user interactions.
+  - __Task:__ Implement Client-Side Cart ID Persistence: Use `localStorage` or `sessionStorage` in `ChatInterface.tsx` to store and retrieve the Shopify `cartId` across page loads/sessions, passing it to relevant API calls or `addToCart` function.
+
+- __Phase 3: Deployment & Optimization__
+
+  - __Task:__ Configure environment variables (`.env.local`, `vercel.json`, deployment configs) for different environments (development, staging, production).
+  - __Verification:__ Deploy to a staging environment and verify all functionalities work correctly.
+  - __Task:__ Optimize product sync (`app/api/sync-products/route.ts`) for large catalogs, considering incremental updates or handling deleted products.
+  - __Verification:__ Monitor sync performance and accuracy with a larger dataset.
+  - __Task:__ Implement enhanced error handling and logging throughout the application (API routes, utilities, components).
+  - __Verification:__ Intentionally trigger errors and verify they are caught and logged appropriately.
+  - __Task:__ Implement the backend API endpoint (`/api/admin/analytics`) to fetch analytics data from Upstash Redis.
+  - __Verification:__ Test the `/api/admin/analytics` endpoint to ensure it returns the expected data structure with correct counts.
+  - __Task:__ Implement the frontend component within the Shopify App Dashboard to display the fetched analytics data using charts and tables.
+  - __Verification:__ Access the Admin Dashboard within Shopify and visually verify that the analytics data is displayed correctly and updates as expected.
+
+__5. Deliverables:__
+
+- Fully functional Next.js application hosted on Vercel.
+- Embeddable AI chatbot widget integrated into the target Shopify store.
+- Backend API routes for chat processing and product synchronization.
+- Integration with Upstash Vector (BM25), Upstash Redis, Gemini, and Shopify Storefront API.
+- Source code repository.
+- (Planned) Shopify App Dashboard for widget configuration and analytics display.
+- (Planned) Enhanced product interaction features (availability, comparison, complementary suggestions).
+- (Planned) Integrated Knowledge Base/FAQs.
+- (Planned) Analytics tracking and display.
+- __\[MCP] Integration with a self-hosted MCP server for AI agent prompt management and potential logic delegation.__
+
+__6. Key Considerations:__
+
+- __Prerequisite: Manually Create & Configure Upstash Vector Index:__ Before running the first sync, create the index (e.g., `products-index`) in the Upstash Console. Crucially, configure it to use BM25 or a compatible text embedding model via the `data` field. Note the REST URL and Token.
+- __\[MCP] MCP Server Dependency:__ The chat functionality relies on the availability and correct configuration of the self-hosted MCP server. Define clear API contracts and handle potential MCP server errors gracefully in `/api/chat`. Ensure the MCP server URL is configurable via environment variables.
+- __\[MCP] Prompt Management:__ Understand how prompts are constructed – does the MCP provide the full system prompt, or just parts that the Next.js backend combines? This affects the logic in `/api/chat`. The provided system prompt is a key starting point for the AI agent's behavior, managed by the MCP server.
+- __Prompt Engineering:__ Iterative refinement of Gemini prompts is crucial for quality results and accurately identifying user intents (advice, how-to, recommendations). The provided system prompt is a key starting point.
+- __Scalability:__ Monitor Upstash/Gemini usage and costs. Optimize queries and caching.
+- __Security:__ Protect the CRON\_SECRET and API keys diligently. Validate inputs.
+- __Shopify API Versioning:__ Keep Storefront API version up-to-date.
+- __Error Handling:__ Implement robust error handling across the application for a better user experience.
+- __Frontend State Management:__ The `useChat` hook from the Vercel AI SDK is used for managing chat state and streaming responses.
+- __Product Data Handling:__ The mechanism to sync product data from Shopify to the Upstash Vector database is implemented and ready to serve product information for search and recommendations. The AI will send product recommendations to the user as part of its response when relevant products are found, as demonstrated in the simulated interaction, tailoring the response based on whether the user needs just advice, recommendations, or recommendations with usage instructions.
+- __Reference Codebase:__ The `ChatBotAI` folder located in the root directory is a subdirectory for reference only and contains an old unfinished project. Specifically, the `ChatBotAI/planet-beauty-ai-chat` subfolder contains the skeleton of the Shopify app, which was installed but not developed, and can be referred to for additional context or clarity during development.
+- __Shopify App Dashboard Implementation:__ This is a significant planned feature that will require careful design and implementation to provide a user-friendly configuration interface for the client, including options for widget appearance, AI model selection, influencing the AI's behavior, and displaying analytics.
+- __Enhancing Product Interaction:__ Implementing features like availability checks, comparison, and complementary suggestions will require careful consideration of data retrieval from Shopify and integration with the AI's response generation.
+- __Knowledge Base Integration:__ Designing and implementing the FAQ integration will require a method for storing and retrieving predefined answers and training the AI to recognize relevant user queries.
+- __Analytics Implementation:__ Setting up Redis counters and developing the backend and frontend components for displaying analytics data is crucial for providing valuable insights to the store owner.
+- __Widget Embedding:__ The provided `public/widget.js` is a basic loader. For robust embedding of the Next.js `ChatInterface`, consider using an iframe loaded by `widget.js` pointing to a dedicated widget page (e.g., `/chat-widget-embed`) within the Next.js app, or investigate more advanced micro-frontend techniques if direct mounting is preferred.
+
+
+###
+
+__Workspace Rules: Planet Beauty AI Chat Assistant__
+
+These rules are designed to ensure consistency, maintainability, and collaboration within the Planet Beauty AI Chat Assistant project.
+
+1. __Coding Standards:__
+
+   - Adhere to standard TypeScript and React best practices.
+   - Follow the ESLint and Prettier configurations included in the project to maintain code style consistency. Run `npm run lint` and `npm run format` regularly.
+   - __Always fix lint errors before committing or submitting code for review. Never leave a file with lint errors.__
+   - Use clear and descriptive variable, function, and component names.
+   - Write concise and readable code, prioritizing clarity over cleverness.
+   - Include comments where necessary to explain complex logic or non-obvious implementations.
+
+2. __TypeScript Usage:__
+
+   - Utilize TypeScript's type system to define interfaces and types for data structures (e.g., API responses, component props, state).
+   - Avoid using `any` unless absolutely necessary and with a clear justification.
+   - Ensure proper typing for all function arguments and return values.
+
+3. __Tailwind CSS:__
+
+   - Primarily use Tailwind CSS utility classes for styling.
+   - Create custom CSS classes or components only when complex or reusable styles are required that cannot be easily achieved with utilities.
+   - Refer to the Planet Beauty branding palette defined in the Tailwind configuration.
+
+4. __Component Development:__
+
+   - Create functional components using React Hooks.
+   - Keep components focused on a single responsibility.
+   - Use props for passing data down and state for managing component-specific data.
+   - Ensure components are responsive and accessible.
+
+5. __API Routes:__
+
+   - API routes in the `app/api` directory should follow the Next.js App Router conventions.
+   - Implement proper request validation and error handling in all API routes.
+   - Protect sensitive endpoints (like `/api/sync-products`) with appropriate authentication mechanisms (e.g., the `CRON_SECRET`).
+   - Avoid exposing sensitive information in API responses.
+
+6. __Git Workflow:__
+
+   - Use a branching strategy (e.g., Gitflow or a simplified feature branch workflow).
+   - Create a new branch for each feature, bug fix, or task.
+   - Write clear and concise commit messages that explain the purpose of the changes. Use imperative mood (e.g., "Fix: Resolve login issue").
+   - Squash commits for a cleaner history when merging feature branches.
+
+7. __Code Reviews:__
+
+   - All code changes must be reviewed by at least one other developer before merging into the main branch.
+   - Provide constructive feedback during code reviews, focusing on code quality, correctness, and adherence to standards.
+   - Address all feedback before merging.
+
+8. __Testing:__
+
+   - Write tests for critical functionality (e.g., API routes, utility functions).
+
+   - Manually test features on different devices and browsers to ensure responsiveness and compatibility.
+
+   - Verify functionality on the `/test-chat` and `/test-sync` pages during development.
+
+   - __Testing Strategy:__
+
+     - Unit Tests (for individual functions and components, mocking external dependencies).
+     - Integration Tests (for API routes, verifying interactions between different parts of the backend).
+     - E2E Tests (using frameworks like Cypress or Playwright to simulate full user chat flows).
+     - Manual Cross-Browser/Device Testing (to ensure responsiveness and compatibility).
+
+9. __Environment Variables and Secrets:__
+
+   - Manage sensitive information using environment variables.
+   - Never commit `.env.local` files to the repository.
+   - Ensure environment variables are correctly configured in Vercel for deployment.
+
+10. __Documentation and Clarity:__
+
+    - Keep the `README.md` file updated with instructions for setting up and running the project.
+    - Add comments to complex code sections.
+    - Refer to the `ChatBotAI` folder located in the root directory, which is a subdirectory for reference only and contains an old unfinished project. Specifically, the `ChatBotAI/planet-beauty-ai-chat` subfolder contains the skeleton of the Shopify app, which was installed but not developed, and can be referred to for additional context or clarity during development.
+    - __Always refer to the MCP library for information and guidance when working with MCP-related functionalities.__
+    - (Optional) Keep Architecture Decision Records (ADRs) in a designated folder to document significant technical decisions.
+
+These rules and the detailed development plan provide a comprehensive guide for contributing to the Planet Beauty AI Chat Assistant project.

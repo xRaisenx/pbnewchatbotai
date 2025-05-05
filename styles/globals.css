@@ -1,0 +1,22 @@
+/* styles/globals.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-bg: #FFFFFF;
+  --primary-text: #000000;
+  --cta: #F5A6C2;
+  --accent: #666666;
+  --highlight: #D4A017;
+}
+
+.dark {
+  --primary-bg: #1F2937;
+  --primary-text: #FFFFFF;
+  --accent: #9CA3AF;
+}
+
+body {
+  @apply bg-[var(--primary-bg)] text-[var(--primary-text)];
+}
