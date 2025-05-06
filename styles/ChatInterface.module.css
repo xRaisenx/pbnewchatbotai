@@ -9,7 +9,7 @@
 }
 
 .toggle {
-    background: #E91E63;
+    background: #E91E63; /* Tailwind pink-600 */
     color: #FFFFFF;
     width: 60px;
     height: 60px;
@@ -60,8 +60,7 @@
     .container.open {
         width: 40vw;
         height: 40vh;
-        max-width: 500px; /* Optional: set a max width */
-        max-height: 600px; /* Optional: set a max height */
+        max-width: 500px;
     }
 }
 
@@ -70,8 +69,7 @@
     .container.open {
         width: 90vw;
         height: 90vh;
-        max-width: 400px; /* Optional: set a max width */
-        max-height: 700px; /* Optional: set a max height */
+        max-width: 90vw;
     }
 }
 
@@ -99,7 +97,7 @@
 }
 
 .header {
-    background: #E91E63;
+    background: #E91E63; /* Tailwind pink-600 */
     color: #FFFFFF;
     padding: 12px 16px;
     font-size: 1.25rem;
@@ -129,7 +127,7 @@
 }
 
 .controlBtn {
-    background: #F06292;
+    background: #F06292; /* Tailwind pink-400 */
     color: #FFFFFF;
     padding: 6px 12px;
     border: none;
@@ -142,7 +140,7 @@
 }
 
 .controlBtn:hover:not(:disabled) {
-    background: #E91E63;
+    background: #E91E63; /* Tailwind pink-600 */
 }
 
 .controlBtn:disabled {
@@ -155,12 +153,12 @@
     padding: 16px;
     overflow-y: auto;
     scrollbar-width: thin;
-    scrollbar-color: #F06292 #FFFFFF;
-    background-color: #f0f2f5;
+    scrollbar-color: #F06292 #FFFFFF; /* Tailwind pink-400 */
+    background-color: #f0f2f5; /* Light grey background for chat area */
 }
 
 .dark .area {
-    scrollbar-color: #F06292 #1A1A1A;
+    scrollbar-color: #F06292 #1A1A1A; /* Tailwind pink-400 */
 }
 
 .area::-webkit-scrollbar {
@@ -168,7 +166,7 @@
 }
 
 .area::-webkit-scrollbar-thumb {
-    background: #F06292;
+    background: #F06292; /* Tailwind pink-400 */
     border-radius: 3px;
 }
 
@@ -183,22 +181,22 @@
 .message-base {
     margin-bottom: 12px;
     max-width: 80%;
-    padding: 8px 12px;
-    border-radius: 10px;
+    padding: 10px 14px;
+    border-radius: 12px;
     line-height: 1.4;
-    font-size: 0.875rem;
+    font-size: 1rem;
     animation: slideIn 0.3s ease;
 }
 
 .user-message {
-    background: #dcf8c6;
-    color: #000000;
+    background: #E91E63; /* Tailwind pink-600 */
+    color: #FFFFFF;
     margin-left: auto;
     border-bottom-right-radius: 2px;
 }
 
 .bot-message {
-    background: #FFFFFF;
+    background: #FFFFFF; /* White background for bot messages */
     color: #000000;
     margin-right: auto;
     border-bottom-left-radius: 2px;
@@ -210,8 +208,8 @@
 }
 
 .messageBubble {
-    border-radius: 20px;
-    padding: 10px 15px;
+    border-radius: 24px; /* Adjusted border-radius */
+    padding: 12px 18px; /* Adjusted padding */
 }
 
 .typingIndicator {
@@ -314,7 +312,7 @@
 }
 
 .chip {
-    background: #F06292;
+    background: #F06292; /* Tailwind pink-400 */
     color: #FFFFFF;
     padding: 6px 12px;
     border-radius: 16px;
@@ -324,7 +322,7 @@
 }
 
 .chip:hover {
-    background: #E91E63;
+    background: #E91E63; /* Tailwind pink-600 */
     transform: translateY(-2px);
 }
 
@@ -360,7 +358,7 @@
 }
 
 .input:focus {
-    border-color: #E91E63;
+    border-color: #E91E63; /* Tailwind pink-600 */
 }
 
 .iconButton {
@@ -381,7 +379,7 @@
 }
 
 .sendBtn {
-    color: #E91E63;
+    color: #E91E63; /* Tailwind pink-600 */
 }
 
 .sendBtn:disabled {

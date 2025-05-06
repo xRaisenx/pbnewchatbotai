@@ -1,4 +1,5 @@
 import { GenerativeModel, GoogleGenerativeAI } from '@google/generative-ai';
+import { Redis } from "@upstash/redis";
 import { Index, QueryResult } from '@upstash/vector';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -6,18 +7,39 @@ import { NextRequest, NextResponse } from 'next/server';
 const UPSTASH_VECTOR_INDEX_NAME = 'idx:products_vss';
 
 let vectorIndex: Index | null = null;
-if (!process.env.VECTOR_URL_BM25_4 || !process.env.VECTOR_TOKEN_BM25_4) {
-    console.error('Missing Upstash Vector BM25 credentials. Set VECTOR_URL_BM25 and VECTOR_TOKEN_BM25 in .env.local.');
-} else {
+if (process.env.VECTOR_URL_BM25_4 && process.env.VECTOR_TOKEN_BM25_4) {
     try {
         vectorIndex = new Index({
             url: process.env.VECTOR_URL_BM25_4,
             token: process.env.VECTOR_TOKEN_BM25_4,
         });
-        console.log('Upstash Vector client initialized.');
+        console.log('Upstash Vector client initialized with VECTOR_URL_BM25_4.');
     } catch (error) {
-        console.error('Failed to initialize Upstash Vector client:', error);
+        console.error('Failed to initialize Vector with VECTOR_URL_BM25_4:', error);
+        if (process.env.VECTOR_URL_BM25 && process.env.VECTOR_TOKEN_BM25) {
+            try {
+                vectorIndex = new Index({
+                    url: process.env.VECTOR_URL_BM25,
+                    token: process.env.VECTOR_TOKEN_BM25,
+                });
+                console.log('Upstash Vector client initialized with VECTOR_URL_BM25.');
+            } catch (fallbackError) {
+                console.error('Failed to initialize Vector with VECTOR_URL_BM25:', fallbackError);
+            }
+        }
     }
+} else if (process.env.VECTOR_URL_BM25 && process.env.VECTOR_TOKEN_BM25) {
+    try {
+        vectorIndex = new Index({
+            url: process.env.VECTOR_URL_BM25,
+            token: process.env.VECTOR_TOKEN_BM25,
+        });
+        console.log('Upstash Vector client initialized with VECTOR_URL_BM25.');
+    } catch (error) {
+        console.error('Failed to initialize Vector with VECTOR_URL_BM25:', error);
+    }
+} else {
+    console.error('Missing Upstash Vector credentials.');
 }
 
 let genAI: GoogleGenerativeAI | null = null;
@@ -65,6 +87,7 @@ interface ChatApiResponse {
     advice: string;
     product_comparison?: ProductCardResponse[];
     complementary_products?: ProductCardResponse[];
+    history: Array<{ role: 'user' | 'bot' | 'model'; text?: string }>;
 }
 
 // --- Dynamic Mappings ---
@@ -79,6 +102,32 @@ let keywordMappings: KeywordMappings = {
     synonyms: {},
     defaultComboTypes: [],
 };
+
+function isProductVectorMetadata(metadata: unknown): metadata is ProductVectorMetadata {
+    if (!metadata || typeof metadata !== 'object') {
+        return false;
+    }
+
+    const m: MetadataWithOptionalProperties = metadata as MetadataWithOptionalProperties;
+
+    return (
+        typeof m.id === 'string' &&
+        typeof m.handle === 'string' &&
+        typeof m.title === 'string' &&
+        typeof m.price === 'string' &&
+        (m.imageUrl === null || typeof m.imageUrl === 'string') &&
+        typeof m.productUrl === 'string'
+    );
+}
+
+interface MetadataWithOptionalProperties {
+    id?: unknown;
+    handle?: unknown;
+    title: string;
+    price: string;
+    imageUrl: string | null;
+    productUrl: string;
+}
 
 async function buildDynamicMappings(): Promise<void> {
     if (!vectorIndex) {
@@ -111,7 +160,7 @@ async function buildDynamicMappings(): Promise<void> {
 
             // Normalize productType
             const normalizedType = productType
-                ? productType.split('>').pop()?.trim().toLowerCase() || ''
+                ? (productType as string).split('>').pop()?.trim().toLowerCase() || ''
                 : '';
             if (normalizedType) {
                 productTypes.add(normalizedType);
@@ -160,31 +209,6 @@ async function buildDynamicMappings(): Promise<void> {
 // Initialize mappings at startup
 buildDynamicMappings().catch(err => console.error('Dynamic mappings initialization failed:', err));
 
-// --- Utility Functions ---
-function isProductVectorMetadata(metadata: unknown): metadata is ProductVectorMetadata {
-    if (!metadata || typeof metadata !== 'object') {
-        return false;
-    }
-
-    const m = metadata as {
-        id?: unknown;
-        handle?: unknown;
-        title?: unknown;
-        price?: unknown;
-        imageUrl?: unknown;
-        productUrl?: unknown;
-    };
-
-    return (
-        typeof m.id === 'string' &&
-        typeof m.handle === 'string' &&
-        typeof m.title === 'string' &&
-        typeof m.price === 'string' &&
-        (m.imageUrl === null || typeof m.imageUrl === 'string') &&
-        typeof m.productUrl === 'string'
-    );
-}
-
 function parsePrice(priceStr: string): number {
     const cleaned = priceStr.replace(/[^0-9.]/g, '');
     return parseFloat(cleaned) || 0;
@@ -193,10 +217,37 @@ function parsePrice(priceStr: string): number {
 export async function POST(req: NextRequest) {
     console.log('Chat API: /api/chat endpoint hit.');
     let searchNote = '';
+    let redis: Redis | null = null;
+
+    if (process.env.KV_CHA_KV_REST_API_URL && process.env.KV_CHA_KV_REST_API_TOKEN) {
+        try {
+            redis = new Redis({
+                url: process.env.KV_CHA_KV_REST_API_URL,
+                token: process.env.KV_CHA_KV_REST_API_TOKEN,
+            });
+            console.log('Upstash Redis client initialized with KV_CHA_* variables.');
+        } catch (error) {
+        console.error('Failed to initialize Upstash Redis with KV_CHA_* variables:', error);
+        }
+    } else if (process.env.REDIS_URL) {
+        try {
+            const url = new URL(process.env.REDIS_URL);
+            const token = url.password;
+            redis = new Redis({
+                url: process.env.REDIS_URL,
+                token: token,
+            });
+            console.log('Upstash Redis client initialized with REDIS_URL.');
+        } catch (fallbackError) {
+            console.error('Failed to initialize Upstash Redis with REDIS_URL:', fallbackError);
+        }
+    } else {
+        console.warn('Missing Upstash Redis credentials. Memory features will be disabled.');
+    }
 
     try {
         const body = await req.json();
-        const { query, history = [] } = body as {
+        const { query, history: clientHistory = [] } = body as {
             query: string;
             history: Array<{ role: 'user' | 'bot' | 'model'; text?: string }>;
         };
@@ -207,6 +258,29 @@ export async function POST(req: NextRequest) {
         }
         const trimmedQuery = query.trim();
         console.log(`Processing query: "${trimmedQuery}"`);
+
+        let history: Array<{ role: 'user' | 'bot' | 'model'; text?: string }> = clientHistory;
+        if (redis) {
+            try {
+                const userId = "user123"; // TODO: Replace with authenticated user ID
+                const storedHistory = await redis.get(`chat:${userId}`);
+                if (storedHistory && typeof storedHistory === 'string' && storedHistory !== "") {
+                    try {
+                        const parsedHistory = JSON.parse(storedHistory as string);
+                        if (Array.isArray(parsedHistory)) {
+                            history = parsedHistory;
+                            console.log('Chat history retrieved from Redis.');
+                        } else {
+                            console.warn('Invalid history format in Redis; using client history.');
+                        }
+                    } catch (parseError) {
+                        console.error('Failed to parse chat history from Redis:', parseError);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to retrieve chat history from Redis:', error);
+            }
+        }
 
         const geminiHistory = history
             .filter(msg => msg.text && msg.text.trim().length > 0)
@@ -226,6 +300,8 @@ export async function POST(req: NextRequest) {
             price_filter?: number | null;
             sort_by_price?: boolean;
             vendor?: string;
+            attributes?: string[];
+            product_tags?: string;
         } = {
             ai_understanding: 'Unable to interpret query intent.',
             search_keywords: '',
@@ -249,9 +325,11 @@ export async function POST(req: NextRequest) {
             7. "price_filter": Maximum price in USD (e.g., 20 for "under $20") or null if unspecified.
             8. "sort_by_price": Boolean, true if query includes "cheapest" (e.g., "top 4 cheapest lipsticks").
             9. "vendor": Brand name if specified (e.g., "Enjoy" for "Enjoy lipsticks"), or empty string if none.
+            10. "attributes": An array of product attributes identified in the query (e.g., ["vegan", "cruelty-free", "under $20"]).
             Format the output as a JSON string.
 
             User Query: "${trimmedQuery}"
+            Product Tags: ${geminiResult.product_tags || 'No tags found'}
             Chat History: ${JSON.stringify(geminiHistory.slice(-4))}`;
 
             try {
@@ -312,7 +390,7 @@ export async function POST(req: NextRequest) {
 
         // --- Stage 2: Vector Search ---
         let finalProductCards: ProductCardResponse[] = [];
-        const SIMILARITY_THRESHOLD = 1.4;
+        const SIMILARITY_THRESHOLD = 0.70;
         const requestedCount = Math.max(1, geminiResult.requested_product_count || 1);
         const topK = Math.max(requestedCount * 2, 10);
 
@@ -325,17 +403,21 @@ export async function POST(req: NextRequest) {
                 console.warn('Vector client not initialized.');
                 return null;
             }
+
             if (!searchText || searchText.trim().length === 0) {
                 console.log('No search text provided.');
                 return null;
             }
+
             try {
                 console.log(`Querying vector index '${UPSTASH_VECTOR_INDEX_NAME}' with data: "${searchText.substring(0, 70)}...", topK: ${k}`);
-                const results = await vectorIndex.query({
+
+                // Include tags and title in the search
+                const results = (await vectorIndex.query({
                     data: searchText,
                     topK: k,
                     includeMetadata: true,
-                });
+                })) as QueryResult<ProductVectorMetadata>[];
 
                 if (!results || results.length === 0) {
                     console.log(' -> No results found.');
@@ -344,95 +426,68 @@ export async function POST(req: NextRequest) {
 
                 console.log(` -> Found ${results.length} matches. Top match ID: ${results[0].id}, Score: ${results[0].score.toFixed(4)}`);
 
-                let filteredResults = results
-                    .filter(result => {
-                        if (!result.metadata || !isProductVectorMetadata(result.metadata)) {
-                            console.warn(' -> Invalid metadata:', result.metadata);
-                            return false;
-                        }
-                        const metadata = result.metadata;
-                        let typeMatch = true;
-                        let tagMatch = true;
-                        let vendorMatch = true;
-                        let priceMatch = true;
+                let filteredResults = results.filter(result => {
+                    if (!result.metadata || !isProductVectorMetadata(result.metadata)) {
+                        console.warn(' -> Invalid metadata:', result.metadata);
+                        return false;
+                    }
 
-                        if (filter?.productType) {
-                            const productTypeLower = filter.productType.toLowerCase();
-                            const metadataProductType = (metadata.productType ?? '').split('>').pop()?.trim().toLowerCase() || '';
-                            const metadataTags = (metadata.tags ?? '').toLowerCase();
-                            const metadataTitle = metadata.title.toLowerCase();
-                            const synonymsForType = keywordMappings.synonyms[productTypeLower] || [];
-                            typeMatch = metadataProductType.includes(productTypeLower) ||
-                                metadataTags.includes(productTypeLower) ||
-                                metadataTitle.includes(productTypeLower) ||
-                                synonymsForType.some(syn => 
-                                    metadataProductType.includes(syn) ||
-                                    metadataTags.includes(syn) ||
-                                    metadataTitle.includes(syn)
-                                );
-                            if (!typeMatch) {
-                                console.log(
-                                    ` -> Filtered out: "${metadata.title}" (typeMatch: ${typeMatch}, productType: "${metadata.productType}", tags: "${metadata.tags}", title: "${metadata.title}")`
-                                );
-                            }
-                        }
+                    const metadata = result.metadata;
+                    let typeMatch = true;
+                    const tagMatch = true;
+                    let vendorMatch = true;
+                    let priceMatch = true;
+                    let attributeMatch = true;
 
-                        if (filter?.tags) {
-                            const filterTagsLower = filter.tags.toLowerCase();
-                            const metadataTags = (metadata.tags ?? '').toLowerCase();
-                            const metadataTitle = metadata.title.toLowerCase();
-                            const tagWords = filterTagsLower.split(' ');
-                            tagMatch = tagWords.some(word => 
-                                metadataTags.includes(word) ||
-                                metadataTitle.includes(word)
-                            );
-                            if (!tagMatch) {
-                                console.log(
-                                    ` -> Filtered out: "${metadata.title}" (tagMatch: ${tagMatch}, tags: "${metadata.tags}", title: "${metadata.title}")`
-                                );
-                            }
-                        }
+                    // Check product type
+                    if (filter?.productType) {
+                        const productTypeLower = filter.productType.toLowerCase();
+                        const metadataProductType = (metadata.productType ?? '').split('>').pop()?.trim().toLowerCase() || '';
+                        typeMatch = metadataProductType.includes(productTypeLower);
+                    }
 
-                        if (filter?.vendor) {
-                            const vendorLower = filter.vendor.toLowerCase();
-                            const metadataVendor = (metadata.vendor ?? '').toLowerCase();
-                            vendorMatch = metadataVendor === vendorLower;
-                            if (!vendorMatch) {
-                                console.log(
-                                    ` -> Filtered out: "${metadata.title}" (vendorMatch: ${vendorMatch}, vendor: "${metadata.vendor}")`
-                                );
-                            }
-                        }
+                    // Extract tags from metadata
+                    const metadataTagsLower = (metadata.tags ?? '').toLowerCase();
 
-                        if (geminiResult.price_filter != null) {
-                            const price = parsePrice(metadata.price);
-                            priceMatch = price <= geminiResult.price_filter;
-                            if (!priceMatch) {
-                                console.log(
-                                    ` -> Filtered out: "${metadata.title}" (priceMatch: ${priceMatch}, price: ${price}, max: ${geminiResult.price_filter})`
-                                );
-                            }
-                        }
+                    // Check tags and title for attributes
+                    if (geminiResult.attributes && geminiResult.attributes.length > 0) {
+                        const attributesLower = geminiResult.attributes.map(attr => attr.toLowerCase());
+                        attributeMatch = attributesLower.every(attr => {
+                            return metadataTagsLower.includes(attr);
+                        });
+                    }
 
-                        return typeMatch && tagMatch && vendorMatch && priceMatch;
-                    })
-                    .map(result => ({
-                        ...result,
-                        metadata: result.metadata as ProductVectorMetadata,
-                    }));
+                    // Check vendor
+                    if (filter?.vendor) {
+                        const vendorLower = filter.vendor.toLowerCase();
+                        const metadataVendor = (metadata.vendor ?? '').toLowerCase();
+                        vendorMatch = metadataVendor === vendorLower;
+                    }
+
+                   // Check price
+                    if (geminiResult.price_filter != null) {
+                        const price = parsePrice(metadata.price);
+                        priceMatch = price <= geminiResult.price_filter;
+                    } else if (geminiResult.attributes?.includes('under $20')) {
+                        const price = parsePrice(metadata.price);
+                        priceMatch = price <= 20;
+                    }
+
+                    // Add product tags to geminiResult
+                    geminiResult.product_tags = metadataTagsLower;
+
+                    return typeMatch && tagMatch && vendorMatch && priceMatch && attributeMatch;
+                });
 
                 if (geminiResult.sort_by_price) {
                     filteredResults = filteredResults
                         .filter(result => result.metadata != null)
-                        .sort((a, b) => {
-                            const priceA = parsePrice((a.metadata as ProductVectorMetadata).price);
-                            const priceB = parsePrice((b.metadata as ProductVectorMetadata).price);
-                            return priceA - priceB;
-                        });
+                        .sort((a: QueryResult<ProductVectorMetadata>, b: QueryResult<ProductVectorMetadata>) => parsePrice((a.metadata as ProductVectorMetadata).price) - parsePrice((b.metadata as ProductVectorMetadata).price));
                 }
 
                 console.log(` -> After filtering: ${filteredResults.length} valid results.`);
                 return filteredResults.length > 0 ? filteredResults : null;
+
             } catch (error) {
                 console.error('Upstash Vector Query Error:', error);
                 searchNote = '\n(Note: There was an issue searching for products.)';
@@ -532,7 +587,7 @@ export async function POST(req: NextRequest) {
             if (geminiResult.sort_by_price) {
                 validMatches = validMatches
                     .filter(m => m.metadata != null)
-                    .sort((a, b) => parsePrice((a.metadata as ProductVectorMetadata).price) - parsePrice((b.metadata as ProductVectorMetadata).price));
+                    .sort((a: QueryResult<ProductVectorMetadata>, b: QueryResult<ProductVectorMetadata>) => parsePrice((a.metadata as ProductVectorMetadata).price) - parsePrice((b.metadata as ProductVectorMetadata).price));
             }
 
             if (validMatches.length > 0 && searchStageUsed !== 'Fallback Related Products') {
@@ -550,6 +605,7 @@ export async function POST(req: NextRequest) {
                             image: productData.imageUrl,
                             landing_page: productData.productUrl,
                             variantId: productData.variantId || productData.id,
+                            tags: productData.tags || '',
                         };
                     });
                 if (finalProductCards.length > 0) {
@@ -568,6 +624,7 @@ export async function POST(req: NextRequest) {
                         image: productData.imageUrl,
                         landing_page: productData.productUrl,
                         variantId: productData.variantId || productData.id,
+                        tags: productData.tags || '',
                     };
                 });
             }
@@ -585,7 +642,29 @@ export async function POST(req: NextRequest) {
             product_card: finalProductCards.length === 1 ? finalProductCards[0] : undefined,
             advice: `${geminiResult.advice}\n\n${defaultUsageInstructions}${searchNote}`,
             complementary_products: finalProductCards.length > 1 ? finalProductCards : undefined,
+            history: history, // Include the updated history in the response
         };
+
+        // Update history with new interaction
+        history.push({ role: 'user', text: trimmedQuery });
+        history.push({ role: 'bot', text: finalResponse.advice });
+
+        // Limit history length
+        const maxHistory = parseInt(process.env.MAX_CHAT_HISTORY || '10', 10);
+        if (history.length > maxHistory) {
+            history = history.slice(-maxHistory);
+        }
+
+        // Store updated history in Redis
+        if (redis) {
+            try {
+                const userId = "user123"; // TODO: Replace with authenticated user ID
+                await redis.set(`chat:${userId}`, JSON.stringify(history), { ex: 60 * 60 * 24 });
+                console.log('Chat history stored in Redis.');
+            } catch (error) {
+                console.error('Failed to store chat history in Redis:', error);
+            }
+        }
 
         console.log('Sending final response:', JSON.stringify(finalResponse, null, 2));
         return NextResponse.json(finalResponse);
@@ -595,6 +674,7 @@ export async function POST(req: NextRequest) {
         const errorResponse: ChatApiResponse = {
             ai_understanding: 'An error occurred.',
             advice: `Sorry, I encountered a problem processing your request. (Ref: ${errorMessage.substring(0, 100)})`,
+            history: [], // Add history to the error response
         };
         return NextResponse.json(errorResponse, { status: 500 });
     }

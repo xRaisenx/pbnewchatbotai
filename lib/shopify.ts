@@ -1,8 +1,13 @@
+import { AdminFetchResult, fetchAdminShopifyProducts } from './shopify-admin';
+    export const fetchShopifyProducts = fetchAdminShopifyProducts;
+    export type { AdminFetchResult };
+    
 interface CartResponse {
   cartId: string | null;
   checkoutUrl: string | null;
   userErrors: { message: string }[];
 }
+
 
 export async function addToCart(
   cartId: string | null,

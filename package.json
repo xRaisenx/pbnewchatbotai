@@ -2,19 +2,32 @@
   "name": "planet-beauty-chatbot",
   "version": "0.1.0",
   "private": true,
+  "description": "Planet Beauty Chatbot with MCP Server Integration",
+  "main": "mcp-server.js",
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "check-env": "node -e \"require('dotenv').config(); if (!process.env.VECTOR_URL_BM25 || !process.env.VECTOR_TOKEN_BM25 || !process.env.GEMINI_API_KEY) { console.error('Missing required env vars: VECTOR_URL_BM25, VECTOR_TOKEN_BM25, GEMINI_API_KEY'); process.exit(1); } else { console.log('Environment variables are set.'); }\""
+    "check-env": "node -e \"require('dotenv').config(); if (!process.env.VECTOR_URL_BM25 || !process.env.VECTOR_TOKEN_BM25 || !process.env.GEMINI_API_KEY) { console.error('Missing required env vars: VECTOR_URL_BM25, VECTOR_TOKEN_BM25, GEMINI_API_KEY'); process.exit(1); } else { console.log('Environment variables are set.'); }\"",
+    "mcp-server": "cross-env PORT=3020 MCP_STDIO=true node mcp-server.js",
+    "mcp-server-http": "cross-env PORT=3020 MCP_STDIO=false node mcp-server.js",
+    "test-mcp": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"ping\"}' | npm run mcp-server"
   },
   "dependencies": {
+    "@executeautomation/playwright-mcp-server": "^1.0.3",
     "@google/generative-ai": "^0.21.0",
+    "@upstash/redis": "^1.34.9",
     "@upstash/vector": "^1.2.1",
-    "fast-deep-equal": "^3.1.3",
+    "axios": "^1.6.2",
+    "cross-env": "^7.0.3",
+    "crypto-js": "^4.1.1",
+    "dotenv": "^16.5.0",
+    "express": "^4.18.2",
     "isomorphic-dompurify": "^2.24.0",
     "next": "^15.3.1",
+    "node-fetch": "^3.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
@@ -22,6 +35,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.1.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
@@ -30,5 +44,27 @@
     "eslint-config-next": "15.3.1",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xRaisenx/pbnewchatbotai.git"
+  },
+  "keywords": [
+    "chatbot",
+    "shopify",
+    "mcp",
+    "ai"
+  ],
+  "author": "Your Name",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/xRaisenx/pbnewchatbotai/issues"
+  },
+  "homepage": "https://github.com/xRaisenx/pbnewchatbotai#readme",
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

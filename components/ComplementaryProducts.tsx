@@ -1,7 +1,6 @@
 // components/ComplementaryProducts.tsx
 'use client';
 
-import React from 'react';
 import { ProductCardResponse } from '../app/api/chat/route'; // Import the interface
 import { ProductCard } from './ProductCard'; // Import ProductCard to potentially reuse
 
@@ -16,8 +15,8 @@ export function ComplementaryProducts({ products }: ComplementaryProductsProps) 
 
   return (
     <div className="complementary-products-container border-t border-border-light dark:border-border-dark pt-3 mt-3">
-      <h3 className="text-lg font-semibold mb-2">Suggested Complementary Products</h3>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Complementary products will appear here once suggested by the AI.</p> {/* Added placeholder text */}
+      <h3 className="text-lg font-semibold mb-2">Suggested Products</h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Products will appear here once suggested.</p> {/* Added placeholder text */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {products.map((product, index) => (
           // Can reuse ProductCard for displaying complementary products

@@ -1,7 +1,8 @@
-/.vercel
-/.ChatBotAI
+/node_modules
+/.mcp-dev-server
 /.clinerules
 /.next
+/.vercel
 /.vscode
-/node_modules
-.eve*
+.env*
+/shopify-mcp-server

@@ -7,11 +7,11 @@ import React, {
   useState
 } from 'react';
 import {
-  FaCommentDots /* Import the chat icon */,
   FaPaperPlane,
   FaPlus,
   FaTimes,
-  FaTrashAlt
+  FaTrashAlt,
+  FaCommentDots /* Import the chat icon */
 } from 'react-icons/fa';
 import { v4 as uuidv4 } from 'uuid';
 import { addToCart } from '../lib/shopify';
@@ -257,45 +257,45 @@ export function ChatInterface() {
         <div className={styles.controls}>
           <button
             id="clear-btn"
-            className={styles.controlBtn}
+            className={`${styles.controlBtn} flex items-center px-3 py-1 text-xs rounded-full bg-pink-400 text-white hover:bg-pink-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors`}
             onClick={clearChat}
             disabled={messages.length <= 1}
             aria-label="Clear chat"
           >
-            <FaTrashAlt size={12} style={{ marginRight: '4px' }} />
+            <FaTrashAlt size={12} className="mr-1" />
             Clear Chat
           </button>
           <button
             id="new-btn"
-            className={styles.controlBtn}
+            className={`${styles.controlBtn} flex items-center px-3 py-1 text-xs rounded-full bg-pink-400 text-white hover:bg-pink-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors`}
             onClick={newConversation}
             disabled={messages.length <= 1}
             aria-label="Start new conversation"
           >
-            <FaPlus size={12} style={{ marginRight: '4px' }} />
+            <FaPlus size={12} className="mr-1" />
             New Conversation
           </button>
         </div>
-        <div ref={chatAreaRef} className={styles.area}>
+        <div ref={chatAreaRef} className={`${styles.area} flex-1 p-4 overflow-y-auto bg-gray-100 dark:bg-gray-800`}>
           {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} onAddToCart={handleAddToCart} />
           ))}
         </div>
         {messages.length <= 1 && !isLoading && (
-          <div className={styles.examples}>
+          <div className={`${styles.examples} flex flex-wrap gap-2 p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900`}>
             <button
               onClick={() => handleExampleClick(randomQuestion)}
-              className={styles.chip}
+              className={`${styles.chip} px-3 py-1 text-xs rounded-full bg-pink-400 text-white hover:bg-pink-600 transition-colors`}
               aria-label={`Ask: ${randomQuestion}`}
             >
               {randomQuestion}
             </button>
           </div>
         )}
-        <div className={styles.inputArea}>
+        <div className={`${styles.inputArea} flex items-center p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 gap-2`}>
           <input
             ref={inputRef}
-            className={styles.input}
+            className={`${styles.input} flex-1 px-3 py-2 border border-gray-300 rounded-full text-sm outline-none focus:border-pink-600 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:border-pink-600`}
             type="text"
             placeholder="Ask about beauty products..."
             value={input}
@@ -307,7 +307,7 @@ export function ChatInterface() {
           />
           <button
             id="send-btn"
-            className={`${styles.iconButton} ${styles.sendBtn}`}
+            className={`${styles.iconButton} ${styles.sendBtn} p-2 rounded-full text-pink-600 hover:bg-gray-200 dark:hover:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors`}
             onClick={handleSendClick}
             disabled={isLoading || !input.trim()}
             aria-label="Send message"
